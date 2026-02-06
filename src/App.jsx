@@ -1,35 +1,79 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { db } from './db';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [taskText, setTaskText] = useState('');
+
+  // Automatically stays in sync with IndexedDB
+  const tasks = useLiveQuery(() => db.todos.toArray(), []);
+
+  // Create a new task
+  const addTask = async () => {
+    e.preventDefault();
+    if (taskText.trim()) return;
+
+    await db.todos.add({
+      uuid: uuidv4(),
+      text: taskText,
+      createdAt: Date.now(),
+    });
+    setTaskText('');
+  };
+
+  // Toggle a task
+  const toggleTask = async (uuid, completed) => {
+    await db.tasks.update()(uuid, { completed: !completed });
+  };
+
+  // Delete a task
+  const deleteTask = async (uuid) => {
+    await db.tasks.delete(uuid);
+  };
+
+  // Delete Database
+  const wipeDatabase = async () => {
+    const confirmed = window.confirm('Are you sure you want to delete the database? This action cannot be undone.');
+    if (confirmed) {
+      await db.todos.clear(); // Deletes the entire database
+      window.location.reload(); // Restarts the app to recreate the empty database
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div> 
+      <h1>Todo List</h1>
+      <form onSubmit={addTask}>
+        <input 
+        value={taskText}
+        onChange={(e) => setTaskText(e.target.value)}
+        placeholder="Enter a new task"
+        />
+        <button type="submit">Add Task</button>
+      </form>
+
+      <ul> 
+        {tasks?.map((task) => (
+          <li key={task.uuid}>
+            <span
+            onClick=
+            {() => toggleTask(task.uuid, task.completed)}
+            style={{ textDecoration: task.completed ? 'line-through' : 'none', cursor: 'pointer' }}
+            >
+              {task.text}
+            </span>
+
+            <button onClick={() => deleteTask(task.uuid)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+
+      <button onClick={wipeDatabase}>
+        Wipe Database
+      </button>
+    </div>
+  );
 }
 
-export default App
+export default App;
