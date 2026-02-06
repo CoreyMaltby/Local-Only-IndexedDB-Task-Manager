@@ -7,14 +7,14 @@ function App() {
   const [taskText, setTaskText] = useState('');
 
   // Automatically stays in sync with IndexedDB
-  const tasks = useLiveQuery(() => db.todos.toArray(), []);
+  const tasks = useLiveQuery(() => db.tasks.toArray(), []);
 
   // Create a new task
-  const addTask = async () => {
-    e.preventDefault();
-    if (taskText.trim()) return;
+  const addTask = async (e) => {
+    e.preventDefault(e);
+    if (!taskText.trim()) return;
 
-    await db.todos.add({
+    await db.tasks.add({
       uuid: uuidv4(),
       text: taskText,
       createdAt: Date.now(),
@@ -24,7 +24,7 @@ function App() {
 
   // Toggle a task
   const toggleTask = async (uuid, completed) => {
-    await db.tasks.update()(uuid, { completed: !completed });
+    await db.tasks.update(uuid, { completed: !completed });
   };
 
   // Delete a task
@@ -36,7 +36,7 @@ function App() {
   const wipeDatabase = async () => {
     const confirmed = window.confirm('Are you sure you want to delete the database? This action cannot be undone.');
     if (confirmed) {
-      await db.todos.clear(); // Deletes the entire database
+      await db.tasks.clear(); // Deletes the entire database
       window.location.reload(); // Restarts the app to recreate the empty database
     }
   };
